@@ -127,7 +127,7 @@ pub async fn hlog_update(
     Json(params): Json<hlog::Params>,
 ) -> Result<Response> {
     load_item(&ctx, id, auth.user.id).await?;
-    format::json(hlog::update(&ctx, hlog_id, &params).await?)
+    format::json(hlog::update(&ctx, id, hlog_id, &params).await?)
 }
 
 pub fn routes() -> Routes {

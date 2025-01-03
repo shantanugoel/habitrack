@@ -70,8 +70,11 @@ pub async fn delete_many(txn: &DatabaseTransaction, habit_id: i32) -> Result<()>
     Ok(())
 }
 
-pub async fn update(ctx: &AppContext, id: i32, params: &Params) -> Result<Model> {
+pub async fn update(ctx: &AppContext, habit_id: i32, id: i32, params: &Params) -> Result<Model> {
     let item = load_item(&ctx, id).await?;
+    if item.habit_id != habit_id {
+        return loco_rs::controller::bad_request("Invalid log id");
+    }
     let mut item = item.into_active_model();
     params.update(&mut item);
     Ok(item.update(&ctx.db).await?)
