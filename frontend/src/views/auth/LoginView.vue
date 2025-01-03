@@ -10,9 +10,12 @@ const authStore = useAuthStore()
 const email = ref('')
 const password = ref('')
 const errors = ref<Record<string, string>>({})
+const loginError = ref<string | null>(null)
+const loading = ref(false)
 
 const validateForm = () => {
   errors.value = {}
+  loginError.value = null
   
   if (!email.value) {
     errors.value.email = 'Email is required'
@@ -22,8 +25,6 @@ const validateForm = () => {
   
   if (!password.value) {
     errors.value.password = 'Password is required'
-  } else if (password.value.length < 6) {
-    errors.value.password = 'Password must be at least 6 characters'
   }
   
   return Object.keys(errors.value).length === 0
@@ -31,13 +32,18 @@ const validateForm = () => {
 
 const handleSubmit = async () => {
   if (!validateForm()) return
-
-  try {
-    await authStore.login(email.value, password.value)
-    const redirectPath = (route.query.redirect as string) || '/dashboard'
+  
+  loading.value = true
+  loginError.value = null
+  
+  const success = await authStore.login(email.value, password.value)
+  loading.value = false
+  
+  if (success) {
+    const redirectPath = route.query.redirect as string || '/dashboard'
     router.push(redirectPath)
-  } catch (error) {
-    // Error is already handled in the store
+  } else {
+    loginError.value = authStore.error || 'Failed to login. Check your email if you have not verified your account yet.'
   }
 }
 </script>
@@ -65,16 +71,16 @@ const handleSubmit = async () => {
         <div class="flex flex-col space-y-2 text-center">
           <h1 class="text-2xl font-semibold tracking-tight">Welcome back</h1>
           <p class="text-sm text-muted-foreground">
-            Enter your email to sign in to your account
+            Enter your credentials to sign in
           </p>
         </div>
 
-        <div v-if="authStore.error" class="p-3 rounded-md bg-destructive/15 text-destructive text-sm">
-          {{ authStore.error }}
+        <div v-if="loginError" class="p-3 rounded-md bg-destructive/15 text-destructive text-sm">
+          {{ loginError }}
         </div>
 
         <div class="grid gap-6">
-          <form @submit.prevent="handleSubmit">
+          <form @submit.prevent="handleSubmit" novalidate>
             <div class="grid gap-4">
               <div class="grid gap-2">
                 <label for="email" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -108,9 +114,9 @@ const handleSubmit = async () => {
               <button
                 type="submit"
                 class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
-                :disabled="authStore.loading"
+                :disabled="loading"
               >
-                {{ authStore.loading ? 'Signing in...' : 'Sign in' }}
+                {{ loading ? 'Signing in...' : 'Sign in' }}
               </button>
             </div>
           </form>

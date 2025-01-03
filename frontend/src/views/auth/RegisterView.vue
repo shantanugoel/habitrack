@@ -10,6 +10,7 @@ const name = ref('')
 const email = ref('')
 const password = ref('')
 const errors = ref<Record<string, string>>({})
+const success = ref(false)
 
 const validateForm = () => {
   errors.value = {}
@@ -40,7 +41,8 @@ const handleSubmit = async () => {
 
   try {
     await authStore.register(name.value, email.value, password.value)
-    router.push('/dashboard')
+    success.value = true
+    // Don't redirect, show success message instead
   } catch (error) {
     // Error is already handled in the store
   }
@@ -76,6 +78,10 @@ const handleSubmit = async () => {
 
         <div v-if="authStore.error" class="p-3 rounded-md bg-destructive/15 text-destructive text-sm">
           {{ authStore.error }}
+        </div>
+
+        <div v-if="success" class="p-3 rounded-md bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-sm">
+          Registration successful! Please check your email for a verification link.
         </div>
 
         <div class="grid gap-6">

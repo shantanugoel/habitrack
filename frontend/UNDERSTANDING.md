@@ -58,6 +58,102 @@ The Habit Tracker is a full-stack application that helps users track their daily
   - Update habit log
   - Body: { date: Date, done: boolean, notes?: string }
 
+## API Documentation
+
+### Authentication Endpoints
+
+All authentication endpoints are prefixed with `/api/auth`
+
+#### Register
+- **Endpoint**: `POST /api/auth/register`
+- **Request Body**:
+  ```typescript
+  {
+    name: string;
+    email: string;
+    password: string;
+  }
+  ```
+- **Response**: Empty response with 200 status code
+- **Description**: Creates a new user and sends a welcome email with verification link
+
+#### Login
+- **Endpoint**: `POST /api/auth/login`
+- **Request Body**:
+  ```typescript
+  {
+    email: string;
+    password: string;
+  }
+  ```
+- **Response**:
+  ```typescript
+  {
+    token: string;
+    pid: string;
+    name: string;
+    is_verified: boolean;
+  }
+  ```
+- **Description**: Authenticates user and returns JWT token
+
+#### Current User
+- **Endpoint**: `GET /api/auth/current`
+- **Headers**: 
+  - `Authorization: Bearer <token>`
+- **Response**:
+  ```typescript
+  {
+    pid: string;
+    name: string;
+    email: string;
+  }
+  ```
+- **Description**: Returns current authenticated user's information
+
+#### Verify Email
+- **Endpoint**: `POST /api/auth/verify`
+- **Request Body**:
+  ```typescript
+  {
+    token: string;
+  }
+  ```
+- **Response**: Empty response with 200 status code
+- **Description**: Verifies user's email address using token from email
+
+#### Forgot Password
+- **Endpoint**: `POST /api/auth/forgot`
+- **Request Body**:
+  ```typescript
+  {
+    email: string;
+  }
+  ```
+- **Response**: Empty response with 200 status code
+- **Description**: Sends password reset email to user
+
+#### Reset Password
+- **Endpoint**: `POST /api/auth/reset`
+- **Request Body**:
+  ```typescript
+  {
+    token: string;
+    password: string;
+  }
+  ```
+- **Response**: Empty response with 200 status code
+- **Description**: Resets user's password using token from email
+
+### Error Responses
+All endpoints may return the following error responses:
+
+- **400 Bad Request**: Invalid input data
+- **401 Unauthorized**: Invalid or missing authentication
+- **403 Forbidden**: Insufficient permissions
+- **404 Not Found**: Resource not found
+- **500 Internal Server Error**: Server error
+
 ## Data Models
 
 ### User
@@ -104,3 +200,24 @@ interface HabitLog {
 4. Optimistic UI updates for better UX
 5. Client-side caching for performance
 6. Responsive design for all screen sizes
+
+## Frontend State Management
+
+### Auth Store
+The auth store manages authentication state including:
+- User login/registration
+- JWT token management
+- User session persistence
+- Loading and error states
+
+### Protected Routes
+Routes requiring authentication:
+- `/dashboard`
+- `/habits`
+- `/profile`
+
+Guest-only routes:
+- `/auth/login`
+- `/auth/register`
+- `/auth/forgot-password`
+- `/auth/reset-password`
