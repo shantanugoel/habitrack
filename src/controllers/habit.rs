@@ -5,7 +5,10 @@ use axum::debug_handler;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::models::_entities::habits::{ActiveModel, Entity, Model};
+use crate::models::{
+    _entities::habits::{ActiveModel, Entity, Model},
+    users,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Params {
@@ -24,9 +27,15 @@ impl Params {
     }
 }
 
-async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
-    let item = Entity::find_by_id(id).one(&ctx.db).await?;
-    item.ok_or_else(|| Error::NotFound)
+async fn load_item(ctx: &AppContext, id: i32, user_id: i32) -> Result<Model> {
+    if let Some(item) = Entity::find_by_id(id).one(&ctx.db).await? {
+        if item.user_id != user_id {
+            return unauthorized("unauthorized!");
+        }
+        Ok(item)
+    } else {
+        Err(Error::NotFound)
+    }
 }
 
 #[debug_handler]
@@ -46,11 +55,12 @@ pub async fn add(State(ctx): State<AppContext>, Json(params): Json<Params>) -> R
 
 #[debug_handler]
 pub async fn update(
+    auth: auth::ApiToken<users::Model>,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<Params>,
 ) -> Result<Response> {
-    let item = load_item(&ctx, id).await?;
+    let item = load_item(&ctx, id, auth.user.id).await?;
     let mut item = item.into_active_model();
     params.update(&mut item);
     let item = item.update(&ctx.db).await?;
@@ -58,14 +68,25 @@ pub async fn update(
 }
 
 #[debug_handler]
-pub async fn remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
-    load_item(&ctx, id).await?.delete(&ctx.db).await?;
+pub async fn remove(
+    auth: auth::ApiToken<users::Model>,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
+    load_item(&ctx, id, auth.user.id)
+        .await?
+        .delete(&ctx.db)
+        .await?;
     format::empty()
 }
 
 #[debug_handler]
-pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
-    format::json(load_item(&ctx, id).await?)
+pub async fn get_one(
+    auth: auth::ApiToken<users::Model>,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
+    format::json(load_item(&ctx, id, auth.user.id).await?)
 }
 
 pub fn routes() -> Routes {
