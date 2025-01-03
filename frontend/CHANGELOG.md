@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-01-04
+
+### Added
+- Core habit management functionality
+  - Created HabitCard component for displaying individual habits
+  - Added CreateHabitDialog component for creating and editing habits
+  - Implemented HabitsView with full CRUD operations
+  - Added loading states and animations
+  - Implemented error handling and user feedback
+  - Added empty state handling
+  - Added habit count display
+- Enhanced UI/UX
+  - Added loading skeletons for habits
+  - Implemented toast notifications for actions
+  - Added confirmation dialogs for destructive actions
+  - Enhanced responsive grid layout
+  - Added form validation for habit creation/editing
+
 ## [0.2.0] - 2025-01-04
 
 ### Added
