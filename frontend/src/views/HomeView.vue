@@ -1,37 +1,24 @@
 <script setup lang="ts">
-import PageLayout from '@/components/layout/PageLayout.vue'
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+onMounted(() => {
+  // If user is logged in, redirect to dashboard
+  if (localStorage.getItem('token')) {
+    router.push('/dashboard')
+  } else {
+    router.push('/auth/login')
+  }
+})
 </script>
 
 <template>
-  <PageLayout
-    title="Dashboard"
-    description="Welcome to your habit tracking dashboard"
-  >
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <div class="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-        <div class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <h3 class="tracking-tight text-sm font-medium">Total Habits</h3>
-        </div>
-        <div class="text-2xl font-bold">0</div>
-      </div>
-      <div class="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-        <div class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <h3 class="tracking-tight text-sm font-medium">Completed Today</h3>
-        </div>
-        <div class="text-2xl font-bold">0/0</div>
-      </div>
-      <div class="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-        <div class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <h3 class="tracking-tight text-sm font-medium">Current Streak</h3>
-        </div>
-        <div class="text-2xl font-bold">0 days</div>
-      </div>
-      <div class="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-        <div class="flex flex-row items-center justify-between space-y-0 pb-2">
-          <h3 class="tracking-tight text-sm font-medium">Completion Rate</h3>
-        </div>
-        <div class="text-2xl font-bold">0%</div>
-      </div>
+  <div class="flex items-center justify-center h-screen">
+    <div class="text-center">
+      <h1 class="text-4xl font-bold">Habit Tracker</h1>
+      <p class="mt-2 text-muted-foreground">Redirecting...</p>
     </div>
-  </PageLayout>
+  </div>
 </template>

@@ -1,16 +1,16 @@
-&lt;script setup lang="ts"&gt;
+<script setup lang="ts">
 defineProps<{
   title?: string
   description?: string
 }>()
-&lt;/script&gt;
+</script>
 
-&lt;template&gt;
-  &lt;div class="flex flex-col gap-4 p-4 md:gap-8 md:p-10"&gt;
-    &lt;div class="flex flex-col gap-2"&gt;
-      &lt;h1 v-if="title" class="text-3xl font-bold tracking-tight"&gt;{{ title }}&lt;/h1&gt;
-      &lt;p v-if="description" class="text-muted-foreground"&gt;{{ description }}&lt;/p&gt;
-    &lt;/div&gt;
-    &lt;slot&gt;&lt;/slot&gt;
-  &lt;/div&gt;
-&lt;/template&gt;
+<template>
+  <div class="flex flex-col gap-4 p-4 md:gap-8 md:p-10">
+    <div class="flex flex-col gap-2">
+      <h1 v-if="title" class="text-3xl font-bold tracking-tight">{{ title }}</h1>
+      <p v-if="description" class="text-muted-foreground">{{ description }}</p>
+    </div>
+    <slot></slot>
+  </div>
+</template>
