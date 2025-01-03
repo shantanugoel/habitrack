@@ -10,6 +10,8 @@ use crate::models::{
     users,
 };
 
+use super::hlog;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Params {
     pub name: String,
@@ -25,7 +27,7 @@ impl Params {
     }
 }
 
-async fn load_item(ctx: &AppContext, id: i32, user_id: i32) -> Result<Model> {
+pub async fn load_item(ctx: &AppContext, id: i32, user_id: i32) -> Result<Model> {
     if let Some(item) = Entity::find_by_id(id).one(&ctx.db).await? {
         if item.user_id != user_id {
             return unauthorized("unauthorized!");
@@ -100,6 +102,16 @@ pub async fn get_one(
     format::json(load_item(&ctx, id, auth.user.id).await?)
 }
 
+#[debug_handler]
+pub async fn hlog_list(
+    auth: auth::ApiToken<users::Model>,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
+    load_item(&ctx, id, auth.user.id).await?;
+    format::json(hlog::list(&ctx, id).await?)
+}
+
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("api/habits/")
@@ -109,4 +121,5 @@ pub fn routes() -> Routes {
         .add(":id", delete(remove))
         .add(":id", put(update))
         .add(":id", patch(update))
+        .add("/:id/hlogs/", get(hlog_list))
 }

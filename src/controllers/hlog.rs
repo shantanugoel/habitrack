@@ -5,13 +5,11 @@ use axum::debug_handler;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::models::{
-    _entities::hlogs::{ActiveModel, Entity, Model},
-    users,
-};
+use crate::models::_entities::hlogs::{self, ActiveModel, Entity, Model};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Params {
+    pub habit_id: i32,
     pub date: Date,
     pub done: bool,
     pub notes: Option<String>,
@@ -30,20 +28,16 @@ async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
     item.ok_or_else(|| Error::NotFound)
 }
 
-#[debug_handler]
-pub async fn list(
-    auth: auth::ApiToken<users::Model>,
-    State(ctx): State<AppContext>,
-) -> Result<Response> {
-    format::json(Entity::find().all(&ctx.db).await?)
+pub async fn list(ctx: &AppContext, habit_id: i32) -> Result<Vec<Model>> {
+    let hlogs = Entity::find()
+        .filter(hlogs::Column::HabitId.eq(habit_id))
+        .all(&ctx.db)
+        .await?;
+    Ok(hlogs)
 }
 
 #[debug_handler]
-pub async fn add(
-    auth: auth::ApiToken<users::Model>,
-    State(ctx): State<AppContext>,
-    Json(params): Json<Params>,
-) -> Result<Response> {
+pub async fn add(State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Response> {
     let mut item = ActiveModel {
         ..Default::default()
     };
@@ -54,7 +48,6 @@ pub async fn add(
 
 #[debug_handler]
 pub async fn update(
-    auth: auth::ApiToken<users::Model>,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<Params>,
@@ -67,31 +60,12 @@ pub async fn update(
 }
 
 #[debug_handler]
-pub async fn remove(
-    auth: auth::ApiToken<users::Model>,
-    Path(id): Path<i32>,
-    State(ctx): State<AppContext>,
-) -> Result<Response> {
+pub async fn remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     load_item(&ctx, id).await?.delete(&ctx.db).await?;
     format::empty()
 }
 
 #[debug_handler]
-pub async fn get_one(
-    auth: auth::ApiToken<users::Model>,
-    Path(id): Path<i32>,
-    State(ctx): State<AppContext>,
-) -> Result<Response> {
+pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
     format::json(load_item(&ctx, id).await?)
-}
-
-pub fn routes() -> Routes {
-    Routes::new()
-        .prefix("api/hlogs/")
-        .add("/", get(list))
-        .add("/", post(add))
-        .add(":id", get(get_one))
-        .add(":id", delete(remove))
-        .add(":id", put(update))
-        .add(":id", patch(update))
 }
