@@ -9,7 +9,6 @@ use crate::models::_entities::hlogs::{self, ActiveModel, Entity, Model};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Params {
-    pub habit_id: i32,
     pub date: Date,
     pub done: bool,
     pub notes: Option<String>,
@@ -46,17 +45,11 @@ pub async fn add(State(ctx): State<AppContext>, Json(params): Json<Params>) -> R
     format::json(item)
 }
 
-#[debug_handler]
-pub async fn update(
-    Path(id): Path<i32>,
-    State(ctx): State<AppContext>,
-    Json(params): Json<Params>,
-) -> Result<Response> {
+pub async fn update(ctx: &AppContext, id: i32, params: &Params) -> Result<Model> {
     let item = load_item(&ctx, id).await?;
     let mut item = item.into_active_model();
     params.update(&mut item);
-    let item = item.update(&ctx.db).await?;
-    format::json(item)
+    Ok(item.update(&ctx.db).await?)
 }
 
 #[debug_handler]

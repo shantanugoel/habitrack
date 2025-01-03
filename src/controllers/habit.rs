@@ -102,6 +102,7 @@ pub async fn get_one(
     format::json(load_item(&ctx, id, auth.user.id).await?)
 }
 
+// # Add optional date filtering parameters
 #[debug_handler]
 pub async fn hlog_list(
     auth: auth::ApiToken<users::Model>,
@@ -110,6 +111,17 @@ pub async fn hlog_list(
 ) -> Result<Response> {
     load_item(&ctx, id, auth.user.id).await?;
     format::json(hlog::list(&ctx, id).await?)
+}
+
+#[debug_handler]
+pub async fn hlog_update(
+    auth: auth::ApiToken<users::Model>,
+    Path((id, hlog_id)): Path<(i32, i32)>,
+    State(ctx): State<AppContext>,
+    Json(params): Json<hlog::Params>,
+) -> Result<Response> {
+    load_item(&ctx, id, auth.user.id).await?;
+    format::json(hlog::update(&ctx, hlog_id, &params).await?)
 }
 
 pub fn routes() -> Routes {
@@ -122,4 +134,5 @@ pub fn routes() -> Routes {
         .add(":id", put(update))
         .add(":id", patch(update))
         .add("/:id/hlogs/", get(hlog_list))
+        .add("/:id/hlogs/:hlog_id/update", put(hlog_update))
 }
