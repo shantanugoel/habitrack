@@ -1,25 +1,28 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::unnecessary_struct_initialization)]
 #![allow(clippy::unused_async)]
+use axum::debug_handler;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
-use axum::debug_handler;
 
-use crate::models::_entities::hlogs::{ActiveModel, Entity, Model};
+use crate::models::{
+    _entities::hlogs::{ActiveModel, Entity, Model},
+    users,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Params {
     pub date: Date,
     pub done: bool,
     pub notes: Option<String>,
-    }
+}
 
 impl Params {
     fn update(&self, item: &mut ActiveModel) {
-      item.date = Set(self.date.clone());
-      item.done = Set(self.done.clone());
-      item.notes = Set(self.notes.clone());
-      }
+        item.date = Set(self.date.clone());
+        item.done = Set(self.done.clone());
+        item.notes = Set(self.notes.clone());
+    }
 }
 
 async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
@@ -28,12 +31,19 @@ async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
 }
 
 #[debug_handler]
-pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn list(
+    auth: auth::ApiToken<users::Model>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     format::json(Entity::find().all(&ctx.db).await?)
 }
 
 #[debug_handler]
-pub async fn add(State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Response> {
+pub async fn add(
+    auth: auth::ApiToken<users::Model>,
+    State(ctx): State<AppContext>,
+    Json(params): Json<Params>,
+) -> Result<Response> {
     let mut item = ActiveModel {
         ..Default::default()
     };
@@ -44,6 +54,7 @@ pub async fn add(State(ctx): State<AppContext>, Json(params): Json<Params>) -> R
 
 #[debug_handler]
 pub async fn update(
+    auth: auth::ApiToken<users::Model>,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<Params>,
@@ -56,13 +67,21 @@ pub async fn update(
 }
 
 #[debug_handler]
-pub async fn remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn remove(
+    auth: auth::ApiToken<users::Model>,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     load_item(&ctx, id).await?.delete(&ctx.db).await?;
     format::empty()
 }
 
 #[debug_handler]
-pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
+pub async fn get_one(
+    auth: auth::ApiToken<users::Model>,
+    Path(id): Path<i32>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
     format::json(load_item(&ctx, id).await?)
 }
 

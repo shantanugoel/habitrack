@@ -6,7 +6,7 @@ use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::models::{
-    _entities::habits::{ActiveModel, Entity, Model},
+    _entities::habits::{self, ActiveModel, Entity, Model},
     users,
 };
 
@@ -15,7 +15,6 @@ pub struct Params {
     pub name: String,
     pub target: Option<String>,
     pub notes: Option<String>,
-    pub user_id: i32,
 }
 
 impl Params {
@@ -23,7 +22,6 @@ impl Params {
         item.name = Set(self.name.clone());
         item.target = Set(self.target.clone());
         item.notes = Set(self.notes.clone());
-        item.user_id = Set(self.user_id.clone());
     }
 }
 
@@ -39,16 +37,29 @@ async fn load_item(ctx: &AppContext, id: i32, user_id: i32) -> Result<Model> {
 }
 
 #[debug_handler]
-pub async fn list(State(ctx): State<AppContext>) -> Result<Response> {
-    format::json(Entity::find().all(&ctx.db).await?)
+pub async fn list(
+    auth: auth::ApiToken<users::Model>,
+    State(ctx): State<AppContext>,
+) -> Result<Response> {
+    format::json(
+        Entity::find()
+            .filter(habits::Column::UserId.eq(auth.user.id))
+            .all(&ctx.db)
+            .await?,
+    )
 }
 
 #[debug_handler]
-pub async fn add(State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Response> {
+pub async fn add(
+    auth: auth::ApiToken<users::Model>,
+    State(ctx): State<AppContext>,
+    Json(params): Json<Params>,
+) -> Result<Response> {
     let mut item = ActiveModel {
         ..Default::default()
     };
     params.update(&mut item);
+    item.user_id = Set(auth.user.id);
     let item = item.insert(&ctx.db).await?;
     format::json(item)
 }
