@@ -2,6 +2,7 @@
 #![allow(clippy::unnecessary_struct_initialization)]
 #![allow(clippy::unused_async)]
 use axum::debug_handler;
+use chrono::Datelike;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -62,7 +63,11 @@ pub async fn add(
     };
     params.update(&mut item);
     item.user_id = Set(auth.user.id);
+    let current_year = chrono::Local::now().year_ce();
+    let txn = ctx.db.begin().await?;
     let item = item.insert(&ctx.db).await?;
+    hlog::add_many(&ctx, current_year.1, item.id).await?;
+    txn.commit().await?;
     format::json(item)
 }
 
@@ -86,10 +91,11 @@ pub async fn remove(
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
 ) -> Result<Response> {
-    load_item(&ctx, id, auth.user.id)
-        .await?
-        .delete(&ctx.db)
-        .await?;
+    let item = load_item(&ctx, id, auth.user.id).await?;
+    let txn = ctx.db.begin().await?;
+    hlog::delete_many(&ctx, item.id).await?;
+    item.delete(&ctx.db).await?;
+    txn.commit().await?;
     format::empty()
 }
 

@@ -1,7 +1,7 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::unnecessary_struct_initialization)]
 #![allow(clippy::unused_async)]
-use axum::debug_handler;
+use chrono::Duration;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -35,14 +35,38 @@ pub async fn list(ctx: &AppContext, habit_id: i32) -> Result<Vec<Model>> {
     Ok(hlogs)
 }
 
-#[debug_handler]
-pub async fn add(State(ctx): State<AppContext>, Json(params): Json<Params>) -> Result<Response> {
-    let mut item = ActiveModel {
-        ..Default::default()
+pub async fn add_many(ctx: &AppContext, year: u32, habit_id: i32) -> Result<()> {
+    let mut items = Vec::new();
+    let days_in_year = if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) {
+        366
+    } else {
+        365
     };
-    params.update(&mut item);
-    let item = item.insert(&ctx.db).await?;
-    format::json(item)
+    if let Some(start_date) = Date::from_ymd_opt(year as i32, 1, 1) {
+        for i in 0..days_in_year {
+            let item = ActiveModel {
+                habit_id: Set(habit_id),
+                date: Set(start_date + Duration::days(i)),
+                done: Set(false),
+                notes: Set(None),
+                ..Default::default()
+            };
+            items.push(item);
+        }
+        Entity::insert_many(items).exec(&ctx.db).await?;
+        Ok(())
+    } else {
+        tracing::error!("Invalid year {year}");
+        Err(Error::InternalServerError)
+    }
+}
+
+pub async fn delete_many(ctx: &AppContext, habit_id: i32) -> Result<()> {
+    Entity::delete_many()
+        .filter(hlogs::Column::HabitId.eq(habit_id))
+        .exec(&ctx.db)
+        .await?;
+    Ok(())
 }
 
 pub async fn update(ctx: &AppContext, id: i32, params: &Params) -> Result<Model> {
@@ -50,15 +74,4 @@ pub async fn update(ctx: &AppContext, id: i32, params: &Params) -> Result<Model>
     let mut item = item.into_active_model();
     params.update(&mut item);
     Ok(item.update(&ctx.db).await?)
-}
-
-#[debug_handler]
-pub async fn remove(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
-    load_item(&ctx, id).await?.delete(&ctx.db).await?;
-    format::empty()
-}
-
-#[debug_handler]
-pub async fn get_one(Path(id): Path<i32>, State(ctx): State<AppContext>) -> Result<Response> {
-    format::json(load_item(&ctx, id).await?)
 }
