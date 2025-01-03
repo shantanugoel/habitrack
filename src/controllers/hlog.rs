@@ -3,6 +3,7 @@
 #![allow(clippy::unused_async)]
 use chrono::Duration;
 use loco_rs::prelude::*;
+use sea_orm::DatabaseTransaction;
 use serde::{Deserialize, Serialize};
 
 use crate::models::_entities::hlogs::{self, ActiveModel, Entity, Model};
@@ -35,7 +36,7 @@ pub async fn list(ctx: &AppContext, habit_id: i32) -> Result<Vec<Model>> {
     Ok(hlogs)
 }
 
-pub async fn add_many(ctx: &AppContext, year: u32, habit_id: i32) -> Result<()> {
+pub async fn add_many(txn: &DatabaseTransaction, year: u32, habit_id: i32) -> Result<()> {
     let mut items = Vec::new();
     let days_in_year = if year % 4 == 0 && (year % 100 != 0 || year % 400 == 0) {
         366
@@ -53,7 +54,7 @@ pub async fn add_many(ctx: &AppContext, year: u32, habit_id: i32) -> Result<()> 
             };
             items.push(item);
         }
-        Entity::insert_many(items).exec(&ctx.db).await?;
+        Entity::insert_many(items).exec(txn).await?;
         Ok(())
     } else {
         tracing::error!("Invalid year {year}");
@@ -61,10 +62,10 @@ pub async fn add_many(ctx: &AppContext, year: u32, habit_id: i32) -> Result<()> 
     }
 }
 
-pub async fn delete_many(ctx: &AppContext, habit_id: i32) -> Result<()> {
+pub async fn delete_many(txn: &DatabaseTransaction, habit_id: i32) -> Result<()> {
     Entity::delete_many()
         .filter(hlogs::Column::HabitId.eq(habit_id))
-        .exec(&ctx.db)
+        .exec(txn)
         .await?;
     Ok(())
 }

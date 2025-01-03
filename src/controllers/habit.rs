@@ -41,7 +41,7 @@ pub async fn load_item(ctx: &AppContext, id: i32, user_id: i32) -> Result<Model>
 
 #[debug_handler]
 pub async fn list(
-    auth: auth::ApiToken<users::Model>,
+    auth: auth::JWTWithUser<users::Model>,
     State(ctx): State<AppContext>,
 ) -> Result<Response> {
     format::json(
@@ -54,26 +54,26 @@ pub async fn list(
 
 #[debug_handler]
 pub async fn add(
-    auth: auth::ApiToken<users::Model>,
+    auth: auth::JWTWithUser<users::Model>,
     State(ctx): State<AppContext>,
     Json(params): Json<Params>,
 ) -> Result<Response> {
     let mut item = ActiveModel {
+        user_id: Set(auth.user.id),
         ..Default::default()
     };
     params.update(&mut item);
-    item.user_id = Set(auth.user.id);
     let current_year = chrono::Local::now().year_ce();
     let txn = ctx.db.begin().await?;
-    let item = item.insert(&ctx.db).await?;
-    hlog::add_many(&ctx, current_year.1, item.id).await?;
+    let item = item.insert(&txn).await?;
+    hlog::add_many(&txn, current_year.1, item.id).await?;
     txn.commit().await?;
     format::json(item)
 }
 
 #[debug_handler]
 pub async fn update(
-    auth: auth::ApiToken<users::Model>,
+    auth: auth::JWTWithUser<users::Model>,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
     Json(params): Json<Params>,
@@ -87,21 +87,21 @@ pub async fn update(
 
 #[debug_handler]
 pub async fn remove(
-    auth: auth::ApiToken<users::Model>,
+    auth: auth::JWTWithUser<users::Model>,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
 ) -> Result<Response> {
     let item = load_item(&ctx, id, auth.user.id).await?;
     let txn = ctx.db.begin().await?;
-    hlog::delete_many(&ctx, item.id).await?;
-    item.delete(&ctx.db).await?;
+    hlog::delete_many(&txn, item.id).await?;
+    item.delete(&txn).await?;
     txn.commit().await?;
     format::empty()
 }
 
 #[debug_handler]
 pub async fn get_one(
-    auth: auth::ApiToken<users::Model>,
+    auth: auth::JWTWithUser<users::Model>,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
 ) -> Result<Response> {
@@ -111,7 +111,7 @@ pub async fn get_one(
 // # Add optional date filtering parameters
 #[debug_handler]
 pub async fn hlog_list(
-    auth: auth::ApiToken<users::Model>,
+    auth: auth::JWTWithUser<users::Model>,
     Path(id): Path<i32>,
     State(ctx): State<AppContext>,
 ) -> Result<Response> {
@@ -121,7 +121,7 @@ pub async fn hlog_list(
 
 #[debug_handler]
 pub async fn hlog_update(
-    auth: auth::ApiToken<users::Model>,
+    auth: auth::JWTWithUser<users::Model>,
     Path((id, hlog_id)): Path<(i32, i32)>,
     State(ctx): State<AppContext>,
     Json(params): Json<hlog::Params>,
