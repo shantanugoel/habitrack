@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-01-04
+
+### Added
+- Complete authentication system with JWT handling
+- Protected route middleware with auth checks
+- Form validation for login and registration
+- Error handling and loading states
+- Token refresh mechanism
+- API client with interceptors
+- Improved navigation with auth-aware routing
+- Enhanced UI feedback for form errors
+- Proper logout handling
+- Auth persistence with localStorage
+
+### Changed
+- Updated MainLayout with proper auth integration
+- Enhanced sidebar navigation with active states
+- Improved error messages and UI feedback
+- Refactored auth store to use composition API
+- Updated router configuration for auth protection
+
+### Security
+- Added JWT token handling
+- Implemented token refresh mechanism
+- Added auth state validation
+- Protected routes from unauthorized access
+- Secure token storage in localStorage
+- Added request/response interceptors for auth
+
 ## [0.1.0] - 2025-01-04
 
 ### Added

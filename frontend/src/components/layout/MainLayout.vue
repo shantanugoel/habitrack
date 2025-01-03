@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import ThemeToggle from './ThemeToggle.vue'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const showSidebar = ref(true)
 
 const toggleSidebar = () => {
@@ -11,7 +13,7 @@ const toggleSidebar = () => {
 }
 
 const handleLogout = () => {
-  localStorage.removeItem('token')
+  authStore.logout()
   router.push('/auth/login')
 }
 </script>
@@ -52,9 +54,9 @@ const handleLogout = () => {
         <div class="h-full py-6 pl-8 pr-6 lg:py-8">
           <nav class="flex flex-col space-y-2">
             <router-link
-              to="/"
+              to="/dashboard"
               class="flex items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-              :class="{ 'bg-accent': $route.path === '/' }"
+              :class="{ 'bg-accent': $route.path === '/dashboard' }"
             >
               Dashboard
             </router-link>

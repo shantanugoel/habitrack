@@ -1,8 +1,7 @@
 import axios from 'axios'
-import { useAuthStore } from '@/stores/auth'
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -28,24 +27,26 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    // If the error status is 401 and there is no originalRequest._retry flag,
-    // it means the token has expired and we need to refresh it
-    if (error.response.status === 401 && !originalRequest._retry) {
+    // If the error is due to an expired token
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
 
       try {
+        // Try to refresh the token
         const response = await api.post('/auth/refresh')
-        const token = response.data.token
-        localStorage.setItem('token', token)
+        const { token } = response.data
 
-        // Retry the original request with the new token
-        originalRequest.headers.Authorization = `Bearer ${token}`
+        // Update token in localStorage and axios headers
+        localStorage.setItem('token', token)
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+
+        // Retry the original request
         return api(originalRequest)
-      } catch (error) {
-        // If refresh token fails, logout user
-        const authStore = useAuthStore()
-        await authStore.logout()
-        return Promise.reject(error)
+      } catch (refreshError) {
+        // If refresh fails, redirect to login
+        localStorage.removeItem('token')
+        window.location.href = '/auth/login'
+        return Promise.reject(refreshError)
       }
     }
 

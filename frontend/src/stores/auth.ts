@@ -1,87 +1,88 @@
 import { defineStore } from 'pinia'
-import type { User, LoginCredentials, RegisterData } from '@/types'
+import { ref, computed } from 'vue'
 import { api } from '@/lib/api'
+import type { User } from '@/types'
 
-interface AuthState {
-  user: User | null
-  token: string | null
-  loading: boolean
-  error: string | null
-}
+export const useAuthStore = defineStore('auth', () => {
+  const user = ref<User | null>(null)
+  const token = ref<string | null>(null)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
 
-export const useAuthStore = defineStore('auth', {
-  state: (): AuthState => ({
-    user: null,
-    token: localStorage.getItem('token'),
-    loading: false,
-    error: null
-  }),
+  const isAuthenticated = computed(() => !!token.value)
 
-  getters: {
-    isAuthenticated: (state) => !!state.token,
-    getUser: (state) => state.user
-  },
+  const setToken = (newToken: string | null) => {
+    token.value = newToken
+    if (newToken) {
+      localStorage.setItem('token', newToken)
+      api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+    } else {
+      localStorage.removeItem('token')
+      delete api.defaults.headers.common['Authorization']
+    }
+  }
 
-  actions: {
-    async login(credentials: LoginCredentials) {
-      this.loading = true
-      this.error = null
+  const setUser = (newUser: User | null) => {
+    user.value = newUser
+  }
+
+  const login = async (email: string, password: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await api.post('/auth/login', { email, password })
+      setToken(response.data.token)
+      setUser(response.data.user)
+    } catch (err: any) {
+      error.value = err.response?.data?.message || 'Failed to login'
+      throw error.value
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const register = async (name: string, email: string, password: string) => {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await api.post('/auth/register', { name, email, password })
+      setToken(response.data.token)
+      setUser(response.data.user)
+    } catch (err: any) {
+      error.value = err.response?.data?.message || 'Failed to register'
+      throw error.value
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const logout = () => {
+    setToken(null)
+    setUser(null)
+  }
+
+  const checkAuth = async () => {
+    const savedToken = localStorage.getItem('token')
+    if (savedToken) {
+      setToken(savedToken)
       try {
-        const { data } = await api.post('/auth/login', credentials)
-        this.token = data.token
-        this.user = data.user
-        localStorage.setItem('token', data.token)
-      } catch (error: any) {
-        this.error = error.response?.data?.message || 'Login failed'
-        throw error
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async register(data: RegisterData) {
-      this.loading = true
-      this.error = null
-      try {
-        const response = await api.post('/auth/register', data)
-        this.token = response.data.token
-        this.user = response.data.user
-        localStorage.setItem('token', response.data.token)
-      } catch (error: any) {
-        this.error = error.response?.data?.message || 'Registration failed'
-        throw error
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async logout() {
-      try {
-        await api.post('/auth/logout')
-      } catch (error) {
-        console.error('Logout error:', error)
-      } finally {
-        this.token = null
-        this.user = null
-        localStorage.removeItem('token')
-      }
-    },
-
-    async fetchUser() {
-      if (!this.token) return
-
-      this.loading = true
-      try {
-        const { data } = await api.get('/auth/me')
-        this.user = data
-      } catch (error: any) {
-        this.error = error.response?.data?.message || 'Failed to fetch user'
-        this.token = null
-        this.user = null
-        localStorage.removeItem('token')
-      } finally {
-        this.loading = false
+        const response = await api.get('/auth/me')
+        setUser(response.data.user)
+      } catch (err) {
+        logout()
       }
     }
+  }
+
+  return {
+    user,
+    token,
+    loading,
+    error,
+    isAuthenticated,
+    login,
+    register,
+    logout,
+    checkAuth
   }
 })
